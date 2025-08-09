@@ -49,23 +49,22 @@ jobs:
           echo "jar_name=${JAR_PATH##*/}" >> $GITHUB_OUTPUT
           echo "jar_path=$PWD/$JAR_PATH" >> $GITHUB_OUTPUT
 
-      # Generate date for tag
-      - name: Generate date tag
-        id: date
-        run: echo "TAG_DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+      # Generate all date strings in advance
+      - name: Generate dates
+        id: dates
+        run: |
+          echo "RELEASE_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+          echo "TAG_DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+          echo "BUILD_DATE_UTC=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_ENV
+          echo "RELEASE_BODY=$(printf 'Automated build of Nascraft\n- Source: https://github.com/Bounser/Nascraft\n- Commit: %s\n- Java: 21\n- Build date: %s' '${{ github.sha }}' '$(date -u +"%Y-%m-%d %H:%M:%S UTC")')" >> $GITHUB_ENV
 
-      # Create release with valid tag format
+      # Create release with precomputed values
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: "auto-build-${{ env.TAG_DATE }}"
-          name: "Auto Build $(date +'%Y-%m-%d')"
-          body: |
-            Automated build of Nascraft
-            - Source: https://github.com/Bounser/Nascraft
-            - Commit: ${{ github.sha }}
-            - Java: 21
-            - Build date: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+          name: "Nascraft At ${{ env.RELEASE_DATE }}"
+          body: ${{ env.RELEASE_BODY }}
           files: |
             ${{ steps.locate-jar.outputs.jar_path }}
           draft: false
