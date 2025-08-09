@@ -49,22 +49,34 @@ jobs:
           echo "jar_name=${JAR_PATH##*/}" >> $GITHUB_OUTPUT
           echo "jar_path=$PWD/$JAR_PATH" >> $GITHUB_OUTPUT
 
-      # Generate all date strings in advance
-      - name: Generate dates
-        id: dates
+      # Generate dates using simplified approach
+      - name: Generate release info
+        id: release-info
         run: |
-          echo "RELEASE_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
-          echo "TAG_DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
-          echo "BUILD_DATE_UTC=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_ENV
-          echo "RELEASE_BODY=$(printf 'Automated build of Nascraft\n- Source: https://github.com/Bounser/Nascraft\n- Commit: %s\n- Java: 21\n- Build date: %s' '${{ github.sha }}' '$(date -u +"%Y-%m-%d %H:%M:%S UTC")')" >> $GITHUB_ENV
+          # Simple date variables
+          RELEASE_DATE=$(date +'%Y-%m-%d')
+          TAG_DATE=$(date +'%Y%m%d')
+          BUILD_DATE=$(date -u +'%Y-%m-%d %H:%M:%S UTC')
+          
+          # Create body without complex formatting
+          BODY="Automated build of Nascraft"
+          BODY+="\n- Source: https://github.com/Bounser/Nascraft"
+          BODY+="\n- Commit: ${{ github.sha }}"
+          BODY+="\n- Java: 21"
+          BODY+="\n- Build date: $BUILD_DATE"
+          
+          # Set outputs
+          echo "release_date=$RELEASE_DATE" >> $GITHUB_OUTPUT
+          echo "tag_date=$TAG_DATE" >> $GITHUB_OUTPUT
+          echo "body=$BODY" >> $GITHUB_OUTPUT
 
-      # Create release with precomputed values
+      # Create release with simplified values
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: "auto-build-${{ env.TAG_DATE }}"
-          name: "Nascraft At ${{ env.RELEASE_DATE }}"
-          body: ${{ env.RELEASE_BODY }}
+          tag_name: "auto-build-${{ steps.release-info.outputs.tag_date }}"
+          name: "Nascraft At ${{ steps.release-info.outputs.release_date }}"
+          body: ${{ steps.release-info.outputs.body }}
           files: |
             ${{ steps.locate-jar.outputs.jar_path }}
           draft: false
