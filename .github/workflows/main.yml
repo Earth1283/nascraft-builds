@@ -2,9 +2,7 @@ name: NasBuild
 
 on:
   schedule:
-    # Run every 48 hours at 00:00 UTC
     - cron: '0 0 */2 * *'
-  # Allow manual triggers
   workflow_dispatch:
 
 jobs:
@@ -18,39 +16,34 @@ jobs:
         with:
           repository: 'Bounser/Nascraft'
           path: nascraft-source
-          fetch-depth: 0  # Get full history for versioning
+          fetch-depth: 0
 
-      # Set up JDK with Maven caching
-      - name: Set up JDK 17
+      # Set up JDK 21 (critical fix)
+      - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '17'
-          cache: 'maven'  # Cache Maven dependencies
+          java-version: '21'
+          cache: 'maven'
 
-      # Initialize Maven project and build
+      # Build with Maven using JDK 21
       - name: Build with Maven
         working-directory: ./nascraft-source
         run: |
-          # Initialize Maven project and download dependencies
-          mvn -B dependency:go-offline
-          
-          # Build the project (package will run compile and tests automatically)
-          mvn -B clean package -DskipTests
-          
-          # Optional: Run tests if you want
-          # mvn -B test
+          # Explicitly set Java version for Maven
+          mvn -B dependency:go-offline -Dmaven.compiler.source=21 -Dmaven.compiler.target=21
+          mvn -B clean package -DskipTests -Dmaven.compiler.source=21 -Dmaven.compiler.target=21
 
       # Find the built JAR
       - name: Locate JAR
         id: locate-jar
         working-directory: ./nascraft-source
         run: |
-          # Find the built jar (excluding test jars)
           JAR_PATH=$(find target -name '*.jar' ! -name '*-tests.jar' ! -name 'original-*.jar' | head -1)
           echo "jar_name=${JAR_PATH##*/}" >> $GITHUB_OUTPUT
           echo "jar_path=$PWD/$JAR_PATH" >> $GITHUB_OUTPUT
-          echo "Found JAR at: $JAR_PATH"
+          echo "Using Java version:"
+          java --version
 
       # Create release
       - name: Create Release
@@ -58,7 +51,7 @@ jobs:
         with:
           tag_name: "build-$(date +'%Y%m%d')"
           name: "Auto Build $(date +'%Y-%m-%d')"
-          body: "Automated build of Nascraft\n- Source: https://github.com/Bounser/Nascraft\n- Commit: ${{ github.sha }}"
+          body: "Automated build of Nascraft\n- Source: https://github.com/Bounser/Nascraft\n- Commit: ${{ github.sha }}\n- Java: 21"
           files: |
             ${{ steps.locate-jar.outputs.jar_path }}
           draft: false
