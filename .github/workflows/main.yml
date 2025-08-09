@@ -5,18 +5,14 @@ on:
     - cron: '0 0 */2 * *'
   workflow_dispatch:
 
-# Add permissions at the workflow level
 permissions:
   contents: write
 
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
-    
-    # Add permissions at the job level too
     permissions:
-      contents: write  # Required to create releases
-      packages: write  # Might be needed for some actions
+      contents: write
 
     steps:
       # Checkout Nascraft source code
@@ -53,12 +49,16 @@ jobs:
           echo "jar_name=${JAR_PATH##*/}" >> $GITHUB_OUTPUT
           echo "jar_path=$PWD/$JAR_PATH" >> $GITHUB_OUTPUT
 
-      # Create release with proper token handling
+      # Generate date for tag
+      - name: Generate date tag
+        id: date
+        run: echo "TAG_DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+
+      # Create release with valid tag format
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          # Use a static tag pattern that won't conflict
-          tag_name: "auto-build-$(date +'%Y%m%d')"
+          tag_name: "auto-build-${{ env.TAG_DATE }}"
           name: "Auto Build $(date +'%Y-%m-%d')"
           body: |
             Automated build of Nascraft
@@ -70,5 +70,4 @@ jobs:
             ${{ steps.locate-jar.outputs.jar_path }}
           draft: false
           prerelease: false
-          # Add token explicitly
           token: ${{ secrets.GITHUB_TOKEN }}
