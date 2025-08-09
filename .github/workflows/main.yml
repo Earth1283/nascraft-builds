@@ -49,7 +49,7 @@ jobs:
           echo "jar_name=${JAR_PATH##*/}" >> $GITHUB_OUTPUT
           echo "jar_path=$PWD/$JAR_PATH" >> $GITHUB_OUTPUT
 
-      # Generate dates using simplified approach
+      # Generate release info with proper formatting
       - name: Generate release info
         id: release-info
         run: |
@@ -58,25 +58,26 @@ jobs:
           TAG_DATE=$(date +'%Y%m%d')
           BUILD_DATE=$(date -u +'%Y-%m-%d %H:%M:%S UTC')
           
-          # Create body without complex formatting
-          BODY="Automated build of Nascraft"
-          BODY+="\n- Source: https://github.com/Bounser/Nascraft"
-          BODY+="\n- Commit: ${{ github.sha }}"
-          BODY+="\n- Java: 21"
-          BODY+="\n- Build date: $BUILD_DATE"
+          # Create release body file with actual newlines
+          cat << EOF > release_body.md
+          Automated build of Nascraft
+          - Source: https://github.com/Bounser/Nascraft
+          - Commit: ${{ github.sha }}
+          - Java: 21
+          - Build date: $BUILD_DATE
+          EOF
           
           # Set outputs
           echo "release_date=$RELEASE_DATE" >> $GITHUB_OUTPUT
           echo "tag_date=$TAG_DATE" >> $GITHUB_OUTPUT
-          echo "body=$BODY" >> $GITHUB_OUTPUT
 
-      # Create release with simplified values
+      # Create release using the body file
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: "auto-build-${{ steps.release-info.outputs.tag_date }}"
           name: "Nascraft At ${{ steps.release-info.outputs.release_date }}"
-          body: ${{ steps.release-info.outputs.body }}
+          body_path: release_body.md
           files: |
             ${{ steps.locate-jar.outputs.jar_path }}
           draft: false
